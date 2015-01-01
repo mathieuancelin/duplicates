@@ -93,7 +93,18 @@ func main() {
   flag.Int64Var(&minSize, "size", 1, "Minimum size in bytes for a file")
   flag.StringVar(&filenameMatch, "name", "*", "Filename pattern")
   flag.BoolVar(&noStats, "nostats", false, "Do no output stats")
+  var help = flag.Bool("h", false, "Display this message")
   flag.Parse()
+  if (*help) {
+    fmt.Println("\nduplicates is a command line tool to find duplicate files in a folder\n")
+    fmt.Println("usage: duplicates [options...] path\n")
+    flag.PrintDefaults()
+    os.Exit(0)
+  }
+  if (len(flag.Args()) < 1) {
+    fmt.Fprintf(os.Stderr, "You have to specify at least a directory to explore ...\n")
+    os.Exit(-1)
+  } 
   root := flag.Arg(0) 
   progress = creatProgress("Scanning %d files ...", &noStats)
   if !noStats {
