@@ -13,8 +13,9 @@ import (
 // TODO : scan files on multiple threads
 // TODO : more options
 // TODO : parse sizes
-
+// TODO : add type for progress output
 var (
+  previous string = ""
   fileCount int64 = 0
   dupCount int64 = 0
   minSize int64 = 0
@@ -24,7 +25,7 @@ var (
   noStats bool
 )
 
-func walkpath(path string, f os.FileInfo, err error) error {
+func visitFile(path string, f os.FileInfo, err error) error {
   if (!f.IsDir() && f.Size() > minSize && (filenameMatch == "*" || filenameRegex.MatchString(f.Name()))) {
     fileCount++
     file, err := os.Open(path)
@@ -37,6 +38,13 @@ func walkpath(path string, f os.FileInfo, err error) error {
       //fmt.Printf("%s\t%s\t%d bytes\n", path, hash, f.Size()) 
       file.Close()
       duplicates[hash] = append(duplicates[hash], path)
+      if !noStats {
+        for j := 0; j <= len(previous); j++ {
+            fmt.Print("\b")
+        }
+        previous = fmt.Sprintf("Scanning %d files ...", fileCount)
+        fmt.Print(previous)
+      }
     }
   }
   return nil  
@@ -53,7 +61,12 @@ func main() {
   }
   r, _ := regexp.Compile(filenameMatch)
   filenameRegex = r
-  filepath.Walk(root, walkpath)
+  filepath.Walk(root, visitFile)
+  if !noStats {
+    for j := 0; j <= len(previous); j++ {
+      fmt.Print("\b")
+    }
+  }
   for _, v := range duplicates {
     if (len(v) > 1) {
       dupCount++ 
