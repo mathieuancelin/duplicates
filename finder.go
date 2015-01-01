@@ -8,6 +8,7 @@ import (
   "fmt"
   "io"
   "regexp"
+  "runtime"
 )
 
 // ==================================================================================================
@@ -54,11 +55,14 @@ func creatProgress(pattern string, notdisplay *bool) (pg *Progress) {
 
 // ==================================================================================================
 
-// TODO : scan files on multiple threads
-// TODO : more options
-// TODO : parse sizes
+type WalkedFile struct {
+  path string
+  file os.FileInfo 
+}
 
 var (
+  singleThread bool = false
+  visitCount int64 = 0
   previous string = ""
   fileCount int64 = 0
   dupCount int64 = 0
@@ -67,10 +71,11 @@ var (
   filenameRegex *regexp.Regexp
   duplicates map[string][]string = make(map[string][]string)
   noStats bool
-  progress *Progress
+  walkProgress *Progress
+  walkFiles []*WalkedFile
 )
 
-func visitFile(path string, f os.FileInfo, err error) error {
+func scanAndHashFile(path string, f os.FileInfo, progress *Progress) {
   if (!f.IsDir() && f.Size() > minSize && (filenameMatch == "*" || filenameRegex.MatchString(f.Name()))) {
     fileCount++
     file, err := os.Open(path)
@@ -85,7 +90,42 @@ func visitFile(path string, f os.FileInfo, err error) error {
       duplicates[hash] = append(duplicates[hash], path)
       progress.increment()
     }
+  }  
+}
+
+func worker(workerId int, jobs <-chan *WalkedFile, results chan<- int, progress *Progress) {
+  for file := range jobs {
+    //fmt.Println("hashing ", file.path, " on worker ", workerId)
+    scanAndHashFile(file.path, file.file, progress)  
+    results <- 0
   }
+}
+
+func computeHashes() {
+  walkProgress := creatProgress("Scanning %d files ...", &noStats)
+  jobs := make(chan *WalkedFile, visitCount)
+  results := make(chan int, visitCount)
+  if singleThread {
+    go worker(1, jobs, results, walkProgress)
+  } else {
+    for w := 1; w <= runtime.NumCPU(); w++ { 
+      go worker(w, jobs, results, walkProgress)
+    }
+  }
+  for _, file := range walkFiles {
+    jobs <- file
+  }
+  close(jobs)
+  for _ = range walkFiles {
+    <-results
+  }
+  walkProgress.delete()
+}
+
+func visitFile(path string, f os.FileInfo, err error) error {
+  visitCount++
+  walkFiles = append(walkFiles, &WalkedFile { path: path, file: f, })
+  walkProgress.increment()
   return nil  
 }
 
@@ -93,6 +133,7 @@ func main() {
   flag.Int64Var(&minSize, "size", 1, "Minimum size in bytes for a file")
   flag.StringVar(&filenameMatch, "name", "*", "Filename pattern")
   flag.BoolVar(&noStats, "nostats", false, "Do no output stats")
+  flag.BoolVar(&singleThread, "single", false, "Work on only one thread")
   var help = flag.Bool("h", false, "Display this message")
   flag.Parse()
   if (*help) {
@@ -106,14 +147,15 @@ func main() {
     os.Exit(-1)
   } 
   root := flag.Arg(0) 
-  progress = creatProgress("Scanning %d files ...", &noStats)
+  walkProgress = creatProgress("Walking through %d files ...", &noStats)
   if !noStats {
     fmt.Printf("\nSearching duplicates in '%s' with name that match '%s' and minimum size '%d' bytes\n\n", root, filenameMatch, minSize)
   }
   r, _ := regexp.Compile(filenameMatch)
   filenameRegex = r
   filepath.Walk(root, visitFile)
-  progress.delete()
+  walkProgress.delete()
+  computeHashes()
   for _, v := range duplicates {
     if (len(v) > 1) {
       dupCount++ 
