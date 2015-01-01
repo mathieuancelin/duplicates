@@ -6,7 +6,7 @@ Sometimes you need to find duplicates files on your disk. You can use this tool 
 
 ## usage
 
-```sh
+```
 usage: duplicates [options...] path
 
   -h          Display the help message
@@ -18,7 +18,7 @@ usage: duplicates [options...] path
 
 ## examples
 
-```sh
+```
 $ duplicates /tmp
 $ duplicates -name .mp3 /tmp
 $ duplicates -size 2056 /tmp
