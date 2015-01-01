@@ -4,9 +4,21 @@ File duplicates finder
 
 Sometimes you need to find duplicates files on your disk. You can use this tool to do it. It uses a MD5 hash to identify duplicate files. You can also use some options to filter files by names an minimum size (in bytes).
 
+## usage
+
+```sh
+usage: duplicates [options...] path
+
+  -h          Display the help message
+  -name       Filename pattern
+  -nostats    Do no output stats
+  -single     Work in single threaded mode
+  -size       Minimum size in bytes for a file
+```
+
 ## examples
 
-```
+```sh
 $ duplicates /tmp
 $ duplicates -name .mp3 /tmp
 $ duplicates -size 2056 /tmp
