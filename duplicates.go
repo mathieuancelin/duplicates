@@ -124,8 +124,10 @@ func computeHashes() {
 
 func visitFile(path string, f os.FileInfo, err error) error {
   visitCount++
-  walkFiles = append(walkFiles, &WalkedFile { path: path, file: f, })
-  walkProgress.increment()
+  if (!f.IsDir() && f.Size() > minSize && (filenameMatch == "*" || filenameRegex.MatchString(f.Name()))) {
+    walkFiles = append(walkFiles, &WalkedFile { path: path, file: f, })
+    walkProgress.increment()
+  }
   return nil  
 }
 
