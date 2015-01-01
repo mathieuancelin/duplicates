@@ -10,6 +10,44 @@ import (
   "regexp"
 )
 
+type Progress struct {
+  pattern string
+  previous string
+  count int64  
+}
+
+func (pg *Progress) delete(display bool) {
+  if (display) {
+    for j := 0; j <= len(pg.previous); j++ {
+      fmt.Print("\b")
+    }
+  }
+}
+
+func (pg *Progress) display(d bool) {
+  if (d) {
+    pg.previous = fmt.Sprintf(pg.pattern, pg.count)
+    fmt.Print(pg.previous)
+  }
+}
+
+func (pg *Progress) increment(display bool) {
+  pg.count++
+  if (display) {
+    pg.delete(display)
+    pg.display(display)
+  }
+}
+
+func creatProgress(pattern string) (pg *Progress) {
+  pg = &Progress{
+    pattern: pattern,
+    previous: "",
+    count:   0,
+  }
+  return pg
+}
+
 // TODO : scan files on multiple threads
 // TODO : more options
 // TODO : parse sizes
@@ -23,6 +61,7 @@ var (
   filenameRegex *regexp.Regexp
   duplicates map[string][]string = make(map[string][]string)
   noStats bool
+  progress = creatProgress("Scanning %d files ...")
 )
 
 func visitFile(path string, f os.FileInfo, err error) error {
@@ -38,13 +77,7 @@ func visitFile(path string, f os.FileInfo, err error) error {
       //fmt.Printf("%s\t%s\t%d bytes\n", path, hash, f.Size()) 
       file.Close()
       duplicates[hash] = append(duplicates[hash], path)
-      if !noStats {
-        for j := 0; j <= len(previous); j++ {
-            fmt.Print("\b")
-        }
-        previous = fmt.Sprintf("Scanning %d files ...", fileCount)
-        fmt.Print(previous)
-      }
+      progress.increment(!noStats)
     }
   }
   return nil  
@@ -62,11 +95,7 @@ func main() {
   r, _ := regexp.Compile(filenameMatch)
   filenameRegex = r
   filepath.Walk(root, visitFile)
-  if !noStats {
-    for j := 0; j <= len(previous); j++ {
-      fmt.Print("\b")
-    }
-  }
+  progress.delete(!noStats)
   for _, v := range duplicates {
     if (len(v) > 1) {
       dupCount++ 
