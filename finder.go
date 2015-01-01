@@ -10,37 +10,41 @@ import (
   "regexp"
 )
 
+// ==================================================================================================
+
 type Progress struct {
+  notdisplay *bool
   pattern string
   previous string
   count int64  
 }
 
-func (pg *Progress) delete(display bool) {
-  if (display) {
+func (pg *Progress) delete() {
+  if (!*pg.notdisplay) {
     for j := 0; j <= len(pg.previous); j++ {
       fmt.Print("\b")
     }
   }
 }
 
-func (pg *Progress) display(d bool) {
-  if (d) {
+func (pg *Progress) displayToConsole() {
+  if (!*pg.notdisplay) {
     pg.previous = fmt.Sprintf(pg.pattern, pg.count)
     fmt.Print(pg.previous)
   }
 }
 
-func (pg *Progress) increment(display bool) {
+func (pg *Progress) increment() {
   pg.count++
-  if (display) {
-    pg.delete(display)
-    pg.display(display)
+  if (!*pg.notdisplay) {
+    pg.delete()
+    pg.displayToConsole()
   }
 }
 
-func creatProgress(pattern string) (pg *Progress) {
+func creatProgress(pattern string, notdisplay *bool) (pg *Progress) {
   pg = &Progress{
+    notdisplay: notdisplay,
     pattern: pattern,
     previous: "",
     count:   0,
@@ -48,10 +52,12 @@ func creatProgress(pattern string) (pg *Progress) {
   return pg
 }
 
+// ==================================================================================================
+
 // TODO : scan files on multiple threads
 // TODO : more options
 // TODO : parse sizes
-// TODO : add type for progress output
+
 var (
   previous string = ""
   fileCount int64 = 0
@@ -61,7 +67,7 @@ var (
   filenameRegex *regexp.Regexp
   duplicates map[string][]string = make(map[string][]string)
   noStats bool
-  progress = creatProgress("Scanning %d files ...")
+  progress *Progress
 )
 
 func visitFile(path string, f os.FileInfo, err error) error {
@@ -77,7 +83,7 @@ func visitFile(path string, f os.FileInfo, err error) error {
       //fmt.Printf("%s\t%s\t%d bytes\n", path, hash, f.Size()) 
       file.Close()
       duplicates[hash] = append(duplicates[hash], path)
-      progress.increment(!noStats)
+      progress.increment()
     }
   }
   return nil  
@@ -89,13 +95,14 @@ func main() {
   flag.BoolVar(&noStats, "nostats", false, "Do no output stats")
   flag.Parse()
   root := flag.Arg(0) 
+  progress = creatProgress("Scanning %d files ...", &noStats)
   if !noStats {
     fmt.Printf("\nSearching duplicates in '%s' with name that match '%s' and minimum size '%d' bytes\n\n", root, filenameMatch, minSize)
   }
   r, _ := regexp.Compile(filenameMatch)
   filenameRegex = r
   filepath.Walk(root, visitFile)
-  progress.delete(!noStats)
+  progress.delete()
   for _, v := range duplicates {
     if (len(v) > 1) {
       dupCount++ 
