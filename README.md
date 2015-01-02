@@ -27,7 +27,11 @@ $ duplicates -nostats -size 2056 -name .mp3 /tmp > duplicates.txt
 ```
 
 ## install
-- from source
+
+* from source
 ```
 go get github.com/mathieuancelin/duplicates
 ```
+* binaries
+
+[![Gobuild Download](http://gobuild.io/badge/github.com/mathieuancelin/duplicates/downloads.svg)](http://gobuild.io/github.com/mathieuancelin/duplicates)
