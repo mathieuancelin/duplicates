@@ -9,6 +9,7 @@ import (
   "io"
   "regexp"
   "runtime"
+  "sync"
 )
 
 type WalkedFile struct {
@@ -25,7 +26,10 @@ var (
   minSize int64 = 0
   filenameMatch string = "*"
   filenameRegex *regexp.Regexp
-  duplicates map[string][]string = make(map[string][]string)
+  duplicates = struct {
+	  sync.RWMutex
+	  m map[string][]string 
+  } {m: make(map[string][]string)}
   noStats bool
   walkProgress *Progress
   walkFiles []*WalkedFile
@@ -43,7 +47,9 @@ func scanAndHashFile(path string, f os.FileInfo, progress *Progress) {
       var hash string = fmt.Sprintf("%x", md5.Sum(nil))
       //fmt.Printf("%s\t%s\t%d bytes\n", path, hash, f.Size()) 
       file.Close()
-      duplicates[hash] = append(duplicates[hash], path)
+      duplicates.Lock()
+      duplicates.m[hash] =  append(duplicates.m[hash], path)
+      duplicates.Unlock()
       progress.increment()
     }
   }  
@@ -114,7 +120,7 @@ func main() {
   filepath.Walk(root, visitFile)
   walkProgress.delete()
   computeHashes()
-  for _, v := range duplicates {
+  for _, v := range duplicates.m {
     if (len(v) > 1) {
       dupCount++ 
     }
@@ -122,7 +128,7 @@ func main() {
   if !noStats {
     fmt.Printf("Found %d duplicates from %d files in %s with options { size: '%d', name: '%s' }\n\n", dupCount, fileCount, root, minSize, filenameMatch)
   }
-  for _, v := range duplicates {
+  for _, v := range duplicates.m {
     if (len(v) > 1) {
       for _, file := range v {
         fmt.Printf("%s\n", file)
