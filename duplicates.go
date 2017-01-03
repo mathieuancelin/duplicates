@@ -2,6 +2,7 @@ package main
 
 import (
   "path/filepath"
+  "sync/atomic"
   "crypto/md5"
   "os"
   "flag"
@@ -37,7 +38,7 @@ var (
 
 func scanAndHashFile(path string, f os.FileInfo, progress *Progress) {
   if (!f.IsDir() && f.Size() > minSize && (filenameMatch == "*" || filenameRegex.MatchString(f.Name()))) {
-    fileCount++
+    atomic.AddInt64(&fileCount, 1);
     file, err := os.Open(path)
     if err != nil {
       fmt.Fprintf(os.Stderr, "%s\n", err.Error())
