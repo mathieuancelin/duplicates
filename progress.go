@@ -2,6 +2,7 @@ package main
 
 import (
   "fmt"
+  "sync/atomic"
 )
 
 type Progress struct {
@@ -27,7 +28,7 @@ func (pg *Progress) displayToConsole() {
 }
 
 func (pg *Progress) increment() {
-  pg.count++
+  atomic.AddInt64 (&pg.count, 1)
   if (!*pg.notdisplay) {
     pg.delete()
     pg.displayToConsole()
