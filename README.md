@@ -14,6 +14,7 @@ usage: duplicates [options...] path
   -nostats    Do no output stats
   -single     Work in single threaded mode
   -size       Minimum size in bytes for a file
+  -delete     Deletes duplicate files
 ```
 
 ## examples
@@ -28,10 +29,12 @@ $ duplicates -nostats -size 2056 -name .mp3 /tmp > duplicates.txt
 
 ## install
 
-* from source
+- from source
+
 ```
 go get github.com/mathieuancelin/duplicates
 ```
-* binaries
+
+- binaries
 
 [![Gobuild Download](http://gobuild.io/badge/github.com/mathieuancelin/duplicates/downloads.svg)](http://gobuild.io/github.com/mathieuancelin/duplicates)
