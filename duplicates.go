@@ -71,6 +71,7 @@ func computeHashes() {
 	jobs := make(chan *WalkedFile, visitCount)
 	results := make(chan int, visitCount)
 	if singleThread {
+		fmt.Println("Single Thread Mode")
 		go worker(1, jobs, results, walkProgress)
 	} else {
 		for w := 1; w <= runtime.NumCPU(); w++ {
@@ -108,8 +109,8 @@ func main() {
 	flag.Int64Var(&minSize, "size", 1, "Minimum size in bytes for a file")
 	flag.StringVar(&filenameMatch, "name", "*", "Filename pattern")
 	flag.BoolVar(&noStats, "nostats", false, "Do no output stats")
-	flag.BoolVar(&singleThread, "single", false, "Work on only one thread")
-	flag.BoolVar(&delete, "delete", true, "Delete duplicate files")
+	flag.BoolVar(&singleThread, "singleThread", false, "Work on only one thread")
+	flag.BoolVar(&delete, "delete", false, "Delete duplicate files")
 	var help = flag.Bool("h", false, "Display this message")
 	flag.Parse()
 	if *help {
@@ -137,13 +138,17 @@ func main() {
 			dupCount++
 		}
 	}
+	if !noStats {
+		fmt.Printf("\nFound %d duplicates from %d files in %s with options { size: '%d', name: '%s' }\n", dupCount, fileCount, root, minSize, filenameMatch)
+	}
 	fmt.Printf("/n /n /n")
 	for _, v := range duplicates.m {
 		if len(v) > 1 {
 			for i, file := range v {
-				fmt.Printf("%s\n", file)
 				if i > 0 && delete {
 					deleteFile(file)
+				} else {
+					fmt.Printf("%s\n", file)
 				}
 			}
 			fmt.Println("---------")
